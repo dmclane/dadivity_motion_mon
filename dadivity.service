@@ -1,0 +1,13 @@
+[Unit]
+Description=dadivity activity monitor
+After=multi-user.target
+
+[Service]
+Type=idle
+ExecStart=/usr/bin/python  /home/pi/dadivity/dadivity.py
+StandardOutput=null
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+

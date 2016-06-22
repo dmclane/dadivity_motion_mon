@@ -1,0 +1,39 @@
+
+Converted to read-only file system.  Referred to web sites such as:
+
+https://hallard.me/raspberry-pi-read-only/
+http://k3a.me/how-to-make-raspberrypi-truly-read-only-reliable-and-trouble-free/
+
+in resolvconf.conf:
+resolv_conf=/tmp/resolv.conf
+
+then:
+ln -s /tmp/resolv.conf /etc/resolv.conf
+
+in ntp.conf change
+driftfile /var/lib/ntp/ntp.drift
+to
+driftfile /tmp/ntp.drift
+
+aliases set:
+rw  // mount -o remount,rw \
+ro  // mount -o remount,ro \
+
+to see busybox log type
+logread
+
+So it will start, and restart, automatically;
+place dadivity.service in /lib/systemd/system/
+Activate with:
+sudo systemctl enable dadivity.service
+
+to disable audio, in /boot/config.txt (easiest to edit on another machine)
+dtparam=audio=off
+
+no sense in doing these
+sudo systemctl mask alsa-restore.service
+sudo systemctl mask alsa-state.service
+sudo systemctl mask alsa-store.service
+
+don't save and restore a random seed
+sudo systemctl disable systemd-random-seed.service
