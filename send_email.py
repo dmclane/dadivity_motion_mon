@@ -27,8 +27,8 @@ import dadivity_config
 from dadivity_constants import *
 import logging
 
-test_dest = dadivity_config.test_dest
-default_from_addr = dadivity_config.default_from_addr
+test_dest = dadivity_config.gmail_account
+default_from_addr = dadivity_config.gmail_from_address
 
 def mailman_factory(**kwargs):
 
