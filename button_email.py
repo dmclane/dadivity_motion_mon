@@ -1,21 +1,28 @@
+#! /usr/bin/python
+
+""" Send email, not more often than once per hour, retry if necessary.
+
+Content of email, address, etc. are configured in dadivity_config.py.
+Email frequency is limited to once per hour.  A high frequency tone
+confirms the button press.  Subsequent button presses within an hour
+produce a low frequency tone.
 
 """
-Copyright 2016 Don McLane
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+## @copyright 2016 Don McLane
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-"""
-
-import RPi.GPIO as GPIO
 import time
 import sys
 import Queue
@@ -26,34 +33,34 @@ import send_email
 import dadivity_config
 from dadivity_constants import *
 from pi_resources import *
-from email_retry_manager import email_retry_manager
+from email_retry_manager import Email_Retry_Manager
+import per_hour_counters
 
-LOW_FREQUENCY = 800
-HIGH_FREQUENCY = 1220
-ONE_YEAR_TIMEOUT = 365 * 24 * 60 * 60
+try:
+    import RPi.GPIO as GPIO
+except ImportError:
+    import mock_GPIO as GPIO     # to test code when not on a Pi
+
+LOW_FREQUENCY = 800                     # Hz.
+HIGH_FREQUENCY = 1220                   # Hz.
+ONE_YEAR_TIMEOUT = 365 * 24 * 60 * 60   # seconds
 BLOCK = True
 
-class button_email():
-    def __init__(self, event_queue, test_flags=[]):
-        self._event_queue = event_queue
+class Button_Email():
+
+    def __init__(self, queue, test_flags=[]):
+
         self._test_flags = test_flags
+        self._email_retry_manager = Email_Retry_Manager(queue, test_flags=test_flags)
         self._last_time = dt.now() - datetime.timedelta(hours=2)
-        self._email_retry_manager = email_retry_manager(self._event_queue, self._test_flags)
 
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.setup(BEEPER_PIN_1, GPIO.OUT)
-        GPIO.setup(BEEPER_PIN_2, GPIO.OUT)
-        GPIO.add_event_detect(BUTTON_PIN, GPIO.FALLING, callback=self.button_press, bouncetime=500)
+    def stop_any_pending_retries(self):
 
-    def button_press(self, pin):   # our interrupt handler
-        self._event_queue.put(self)
-
-    def stop_the_inner_thread(self):
         # it could have Timer threads running
         self._email_retry_manager.reset()
 
-    def callback(self, per_hour_counters):
+    def send(self, per_hour_counters):
+
         # only allow one email per hour
         within_an_hour = (dt.now() - self._last_time) < datetime.timedelta(hours=1)
 
@@ -79,6 +86,7 @@ class button_email():
                 "email_error" : email_error}
 
     def beep(self, freq):
+
         period = 1.0 / freq
         half_period = period / 2.0
 
@@ -100,36 +108,53 @@ class button_email():
 def debug_main():
     logging.basicConfig(level=logging.DEBUG)
 
-    per_hour_counters =  [0] * 24
+    counters = per_hour_counters.Per_Hour_Counters()
+    per_hour_counters.make_some_interesting_data(counters)
     event_queue = Queue.Queue()
+    be = Button_Email(event_queue, test_flags=[JUST_PRINT_MESSAGE])
+    send_result = be.send(counters.format_ascii_bar_chart())
+    print "send_result:", send_result
 
-    try:
-        be = button_email(event_queue, test_flags=[USE_MOCK_MAILMAN])
+#    try:
 
-        while 1:
-#            event = event_queue.get(BLOCK, ONE_YEAR_TIMEOUT)  # needs some timeout to respond to keyboard interrupt
-            event = event_queue.get(BLOCK, 10)  # seconds
-            update = event.callback(per_hour_counters)
-            logging.debug(repr(update))
+#        while 1:
+##            event = event_queue.get(BLOCK, ONE_YEAR_TIMEOUT)  # needs some timeout to respond to keyboard interrupt
+#            event = event_queue.get(BLOCK, 10)  # seconds
+#            update = event.callback(per_hour_counters)
+#            logging.debug(repr(update))
 
-    finally:
-        pass
+#    finally:
+#        pass
 
 if __name__ == "__main__":
 
 #    from pudb import set_trace; set_trace()
+
     try:
+
         if 'beep1' in sys.argv:
+
+            # test the low frequency tone
             button_email(Queue.Queue()).beep(LOW_FREQUENCY)
+
         elif 'beep2' in sys.argv:
+
+            #test the high frequency tone
             button_email(Queue.Queue()).beep(HIGH_FREQUENCY)
+
         elif 'beep3' in sys.argv:
+
+            # sweep tone frequency to determine which tones sound best
             be = button_email(Queue.Queue())
             for i in xrange(400, 3000, 20):
                 print i
                 be.beep(i)
+
         else:
+
             debug_main()
+
     finally:
+
         GPIO.cleanup()
 

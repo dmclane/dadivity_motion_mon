@@ -27,7 +27,7 @@ place dadivity.service in /lib/systemd/system/
 Activate with:
 sudo systemctl enable dadivity.service
 
-to disable audio, in /boot/config.txt (easiest to edit on another machine)
+to disable audio, in /boot/config.txt
 dtparam=audio=off
 
 no sense in doing these

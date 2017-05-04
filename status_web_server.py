@@ -1,3 +1,4 @@
+#! /usr/bin/python
 
 """
 Copyright 2016 Don McLane
@@ -15,11 +16,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import socket
+import SocketServer
 import threading
 import time
 from dadivity_constants import *
 import sys
+import logging
 
 # HOST = 'localhost'   # if 'localhost', only available locally, '' for everywhere
 HOST = ''   # if 'localhost', only available locally, '' for everywhere
@@ -46,37 +48,45 @@ response_postamble = """
 </html>
 """
 
-class status_web_server(threading.Thread):
+class MyTCPHandler(SocketServer.BaseRequestHandler):
+    """
+    The request handler class for our server.
+
+    It is instantiated once per connection to the server, and must
+    override the handle() method to implement communication to the
+    client.
+    """
+
+    def handle(self):
+        # self.request is the TCP socket connected to the client
+        data = self.request.recv(2048).strip()
+        recieved_length = len(data)
+        logging.debug("length recieved: " + str(recieved_length))
+        logging.debug("{} wrote:".format(self.client_address[0]))
+        logging.debug(data)
+        if recieved_length > 0:   # on shutdown you come here with a length of 0.
+            status = self.server.event_monitor.get_history_str() # atomic operation, strings are immutable
+            response = "".join([response_preamble, status, response_postamble])
+            self.request.sendall(response)
+
+class Status_Web_Server(threading.Thread):
 
     def __init__(self, event_monitor, test_flags=[]):
+
         threading.Thread.__init__(self)
-        self.event_monitor = event_monitor
-        self.test_flags = test_flags
-        self.listen_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.listen_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.listen_socket.bind((HOST, PORT))
-        self.listen_socket.listen(1)
-        if PRINT_WEB_SERVER_ACTIVITY in self.test_flags:
-            print 'Serving HTTP on port %s ...' % PORT
+        self.server = SocketServer.TCPServer((HOST, PORT), MyTCPHandler)
+        # The handler has a reference to the server.  So, to pass something
+        # to the handler, we dynamically add it to the server:
+        self.server.event_monitor = event_monitor
+        self.start()
 
     def run(self):
-        while True:
-            client_connection, client_address = self.listen_socket.accept()
-            request = client_connection.recv(2048)
-            if PRINT_WEB_SERVER_ACTIVITY in self.test_flags:
-                print request
+        self.server.serve_forever(poll_interval=0.5)
 
-            if request.startswith('GET / '):
-                status = self.event_monitor.get_history_str() # atomic operation, strings are immutable
-                response = "".join([response_preamble, status, response_postamble])
-                client_connection.sendall(response)
-            else:
-                client_connection.sendall("HTTP/1.0 404 Not Found\r\n")
-            client_connection.close()
-
-    def shutdown(self):                 # called from different thread
-        self.listen_socket.shutdown(socket.SHUT_RDWR)
-        self.listen_socket.close()
+    def shutdown(self):
+        logging.debug("shutdown called")
+        self.server.shutdown()
+        self.server.server_close()
 
 ########################################################################
 #
@@ -90,29 +100,21 @@ class dummy_event_monitor:
         return time.asctime()
 
 def main():
-    sws = status_web_server(dummy_event_monitor(), test_flags=[PRINT_WEB_SERVER_ACTIVITY])
-    sws.start()
+    sws = Status_Web_Server(dummy_event_monitor(), test_flags=[PRINT_WEB_SERVER_ACTIVITY])
 
     try:
-        while 1:
-            time.sleep(1)
-    finally:
-        sws.shutdown()
+        time.sleep(20)
+        print "timed out"
 
-def test1():
-    sws = status_web_server(dummy_event_monitor())
-    sws.start()
+    except KeyboardInterrupt: pass
 
-    try:
-        while 1:
-            time.sleep(1)
     finally:
-        sws.shutdown()
+        try:
+            sws.shutdown()
+        except KeyboardInterrupt: pass
 
 
 if __name__ == "__main__":
 
-    if 'test1' in sys.argv:
-        test1()
-    else:
-        main()
+    logging.basicConfig(level=logging.DEBUG)
+    main()

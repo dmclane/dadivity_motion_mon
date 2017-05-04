@@ -1,3 +1,5 @@
+#! /bin/python
+
 """
 If we get an error, when sending email, try again a few times.
 
@@ -30,19 +32,20 @@ import dadivity_config
 from dadivity_constants import *
 import send_email
 import time
+import logging
 
 MAX_RETRIES = 4
 RESET_FLAG = -1
 HOUR = 60 * 60
 
-class email_retry_manager:
+class Email_Retry_Manager:
 
     def __init__(self, event_queue, test_flags=[]):
         self._q = event_queue
         self._retry_counter = RESET_FLAG
         self._retry_timer = None
         self._test_flags = test_flags
-        if RETRY_TEST in self._test_flags:
+        if FAST_RETRY in self._test_flags:
             self._base_wait = 1                # seconds
         elif FAST_MODE in self._test_flags:
             self._base_wait = 10
@@ -74,12 +77,15 @@ class email_retry_manager:
         if self._retry_timer != None:
             self._retry_timer.cancel()
 
-    def callback(self, per_hour_counters):
+    def callback(self):
+        return {"event":RETRY_MOTION_EMAIL}
 
+    def motion_email_retry(self):
         email_error = None
         current_retry_counter = self._retry_counter      # save current value because it's incremented in retry_again()
+        logging.debug("current_retry_counter = " + str(current_retry_counter))
         if self._retry_counter != RESET_FLAG:
-            message = "retry # " + str(self.retry_counter) + "\n" + self._msg
+            message = "retry # " + str(self._retry_counter) + "\n" + self._msg
             email_error = send_email.dadivity_send(self._subject,
                                                    message,
                                                    self._test_flags)
@@ -97,24 +103,29 @@ class email_retry_manager:
 if __name__ == "__main__":
 
     # debugging stuff, normally commented out.
-    import logging
-    logging.basicConfig(level=logging.DEBUG)
     #from pudb import set_trace; set_trace()
+    logging.basicConfig(level=logging.DEBUG)
 
     ONE_YEAR_TIMEOUT = 365 * 24 * 60 *60
 
     per_hour_counters = [0] * 24
     event_queue = Queue.Queue()
-    erm = email_retry_manager(event_queue, test_flags=[RETRY_TEST])
-    erm.start_retrying("test phrase")
+    erm = Email_Retry_Manager(event_queue, test_flags=[FAST_RETRY, MOCK_ERROR, JUST_PRINT_MESSAGE])
+    erm.start_retrying("test subject", "test message")
 
-    for i in xrange(10):
-        event = event_queue.get(timeout=ONE_YEAR_TIMEOUT)
-        action = event.callback(per_hour_counters)
-        print repr(action)
-        print time.asctime()
-        print "\n*********************************************\n"
-        # if i == 2:
-        #     erm.reset()
-        #     print "\n---------- reset ---------\n"
+    try:
+
+        for i in xrange(10):
+            event = event_queue.get(timeout=ONE_YEAR_TIMEOUT)
+            message = event.callback()
+            print repr(message)
+            if message["event"] == RETRY_MOTION_EMAIL:
+                erm.motion_email_retry()
+            print time.asctime()
+            print "\n*********************************************\n"
+            # if i == 2:
+            #     erm.reset()
+            #     print "\n---------- reset ---------\n"
+
+    except KeyboardInterrupt: pass
 

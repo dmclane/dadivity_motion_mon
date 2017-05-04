@@ -6,6 +6,7 @@ PUD_UP = 0
 FALLING = 0
 RISING = 0
 IN = 0
+OUT = 0
 
 def setmode(mode):
     pass
@@ -15,3 +16,10 @@ def setup(pin, in_out, **kwargs):
 
 def add_event_detect(pin, edge, **kwargs):
     pass
+
+def cleanup():
+    pass
+
+def output(a, b):
+    pass
+

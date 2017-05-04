@@ -1,4 +1,5 @@
 #!/usr/bin/python2
+
 """ dad activity monitor
 
 Monitors the activity as detected by a motion sensor.  Keeps track of the activity for each hour of a day.
@@ -26,78 +27,165 @@ limitations under the License.
 """
 
 import sys
+import threading
 import Queue
-import RPi.GPIO as GPIO
 import dadivity_config
 from dadivity_constants import *
-from daily_email import send_daily_email_summary
-from motion_sensor import motion_sensor
-from button_email import button_email
-from event_monitor import event_monitor
-from status_web_server import status_web_server
+from motion_sensor import Motion_Sensor
+from button_email import Button_Email
+from event_monitor import Event_Monitor
+from status_web_server import Status_Web_Server
 import datetime
 import time
+from per_hour_counters import Per_Hour_Counters
+from hourly_event_generator import Hourly_Event_Generator_Thread
+from email_motion_report import Email_Motion_Report
+try:
+    import RPi.GPIO as GPIO
+except ImportError:
+    import mock_GPIO as GPIO     # to test code when not on a Pi
 
+import logging
 # debugging stuff, normally commented out.
 #from pudb import set_trace; set_trace()
-import logging
-logging.basicConfig(level=logging.DEBUG)
 
 BLOCK = True
 ONE_YEAR_TIMEOUT = 365 * 24 * 60 * 60
 
+class Generate_Test_Events(threading.Thread):
+
+    def __init__(self, stop_event, event_queue, motion_sensor):
+        threading.Thread.__init__(self)
+        self._stop_event = stop_event
+        self._event_queue = event_queue
+        self._motion_sensor = motion_sensor
+        self.start()
+
+    def run(self):
+        while not self._stop_event.isSet():
+            time.sleep(.5)
+            self._event_queue.put(self._motion_sensor)
+
+class dadivity():
+
+    def __init__(self, test_flags=[]):
+        self.test_flags=test_flags
+        self.event_queue = Queue.Queue()
+        self.counters = Per_Hour_Counters()
+
+        self.stop_hourly_tick_event = threading.Event()
+        self.hourly_tick = Hourly_Event_Generator_Thread(self.event_queue,
+                                                         self.stop_hourly_tick_event,
+                                                         test_flags=self.test_flags)
+        self.motion_mailer = Email_Motion_Report(self.event_queue, test_flags=self.test_flags)
+        self.motion_sense = Motion_Sensor(self.event_queue)
+        self.button_send = Button_Email(self.event_queue, test_flags=self.test_flags)
+        self.event_monitor = Event_Monitor()
+        self.web_stats = Status_Web_Server(self.event_monitor)
+
+        # check to see if time is reasonable.  NTP may not have set the time
+        # yet.  Don't wait forever though.
+        for i in xrange(30):
+            if datetime.datetime.now() > datetime.datetime(2015, 1, 1):
+                break
+            time.sleep(1)    # seconds
+
+        self.start_time = datetime.datetime.now()
+
+        self.stop_test_generator_event = threading.Event()
+        Generate_Test_Events(self.stop_test_generator_event, self.event_queue, self.motion_sense)
+
 ########################################################################
 #
-# Main program
+# Main Entry Point
 #
 ########################################################################
 
-def dadivity(test_flags=[]):
-    per_hour_counters = [0] * 24
+    def main(self):
 
-    # check to see if time is reasonable.  NTP may not have set the time
-    # yet.  Don't wait forever though.
-    for i in xrange(30):
-        if datetime.datetime.now() > datetime.datetime(2015, 1, 1):
-            break
-        time.sleep(1)    # seconds
+        try:
 
-    event_queue = Queue.Queue()
-    emailer = send_daily_email_summary(event_queue, test_flags)
-    motion_sense = motion_sensor(event_queue)
-    button_send = button_email(event_queue, test_flags)
-    event_mon = event_monitor(per_hour_counters)
-    web_stats = status_web_server(event_mon)
-    web_stats.start()
+            # your basic event loop
+            while True:
 
-    try:
-        # your basic event loop
-        while True:
-            # need some timeout for keyboard interrupt to work
-            event = event_queue.get(BLOCK, ONE_YEAR_TIMEOUT)
-            update = event.callback(per_hour_counters)
-            event_queue.task_done()
-#            if DISPLAY_ACTIVITY in test_flags:
-            event_mon.update(update, per_hour_counters)
-    finally:
-        emailer.stop_the_inner_thread()
-        button_send.stop_the_inner_thread()
-        web_stats.shutdown()
-        GPIO.cleanup()
+                # need some timeout value for the keyboard interrupt to work
+                event = self.event_queue.get(BLOCK, ONE_YEAR_TIMEOUT)
+                message = event.callback()
+                self.event_queue.task_done()
+                self.dispatch(message)
+
+        except KeyboardInterrupt: pass
+
+        finally:
+
+            self.stop_hourly_tick_event.set()
+            self.stop_test_generator_event.set()
+            self.button_send.stop_any_pending_retries()
+            self.motion_mailer.stop_any_pending_retries()
+            self.web_stats.shutdown()
+            GPIO.cleanup()
+
+########################################################################
+#
+# dispatch -- deal with messages that came out of queue
+#
+########################################################################
+
+    def dispatch(self, message):
+
+        if DISPLAY_ACTIVITY in self.test_flags:
+
+            print "dispatch, message:", message
+
+        if message["event"] == HOUR_TICK:
+
+            # first, is it time to send a motion summary email?
+            if message["current_hour"] in dadivity_config.send_email_hour:
+                update_msg = self.motion_mailer.send(self.counters.format_ascii_bar_chart())
+                logging.debug("update_msg: " + repr(update_msg))
+                self.event_monitor.update(update_msg, self.counters)
+            self.counters.new_hour(message["current_hour"])
+
+        elif message["event"] == RETRY_MOTION_EMAIL:
+
+            update_msg = self.motion_mailer.retry()
+            logging.debug("update_msg: " + repr(update_msg))
+            self.event_monitor.update(update_msg, self.counters)
+
+        elif message["event"] == MOTION_SENSOR_TRIPPED:
+
+            self.counters.motion_hit()
+
+        elif message["event"] == BUTTON_PRESSED:
+
+            pass
+
+        elif message["event"] == BUTTON_EMAIL_SENT:
+
+            pass
+            # self.event_monitor.update(message)
+
+
+########################################################################
+#
+# End of class Dadivity
+#
+########################################################################
 
 if __name__ == '__main__':
 
     if 'test1' in sys.argv:
-        # remember to import logging and set level=logging.DEBUG
-        print 'test1'            # you'll probably want to kill with cntrl-C
-        dadivity(test_flags=[QUEUE_DAILY_EMAIL_IMMEDIATELY, USE_MOCK_MAILMAN])
+        logging.basicConfig(level=logging.DEBUG)
+        dadivity(test_flags=[FAST_MODE, DISPLAY_ACTIVITY, JUST_PRINT_MESSAGE]).main()
 
-#    elif 'test2' in sys.argv:    # prints out stuff in a convenient format.
-#        dadivity(test_flags=[DISPLAY_ACTIVITY])
+    elif 'test2' in sys.argv:
+        logging.basicConfig(level=logging.DEBUG)
+        dadivity(test_flags=[DISPLAY_ACTIVITY, FAST_MODE, USE_MOCK_MAILMAN, FAST_RETRY, MOCK_ERROR]).main()
 
     elif 'test3' in sys.argv:
-        dadivity(test_flags=[DISPLAY_ACTIVITY, FAST_MODE,
-                             USE_MOCK_MAILMAN, MOCK_ERROR])
+        logging.basicConfig(level=logging.DEBUG)
+        dadivity(test_flags=[DISPLAY_ACTIVITY]).main()
 
     else:
-        dadivity()
+        dadivity().main()
+

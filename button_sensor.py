@@ -1,3 +1,5 @@
+#! /usr/bin/python
+
 """
 Copyright 2016 Don McLane
 
@@ -15,39 +17,49 @@ limitations under the License.
 """
 
 import time
+import sys
 import Queue
-import time
 from datetime import datetime as dt
+import datetime
 import logging
+import send_email
+import dadivity_config
 from dadivity_constants import *
 from pi_resources import *
-
+from email_retry_manager import Email_Retry_Manager
 
 try:
     import RPi.GPIO as GPIO
 except ImportError:
     import mock_GPIO as GPIO     # to test code when not on a Pi
 
+LOW_FREQUENCY = 800
+HIGH_FREQUENCY = 1220
 ONE_YEAR_TIMEOUT = 365 * 24 * 60 * 60
 BLOCK = True
 
-class Motion_Sensor():
-    def __init__(self, event_queue):
-        self.q = event_queue
-        self.motion_sensor_pin = MOTION_SENSOR_PIN
+class Button_Sensor():
+    def __init__(self, event_queue, test_flags=[]):
+        self._event_queue = event_queue
+        self._test_flags = test_flags
+        self._last_time = dt.now() - datetime.timedelta(hours=2)
+        self._email_retry_manager = Email_Retry_Manager(self._event_queue, self._test_flags)
+
         GPIO.setmode(GPIO.BCM)
-        GPIO.setup(self.motion_sensor_pin, GPIO.IN)
-        GPIO.add_event_detect(self.motion_sensor_pin, GPIO.RISING, callback=self.motion_detected)
+        GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.setup(BEEPER_PIN_1, GPIO.OUT)
+        GPIO.setup(BEEPER_PIN_2, GPIO.OUT)
+        GPIO.add_event_detect(BUTTON_PIN, GPIO.FALLING, callback=self.button_press, bouncetime=500)
 
-    def motion_detected(self, pin):   # our interrupt handler
-        self.q.put(self)
+    def button_press(self, pin):   # our interrupt handler
+        self._event_queue.put(self)
 
-#    def callback(self, per_hour_counters):
-    def callback(self):
-#        hour = time.localtime().tm_hour
-#        per_hour_counters[hour] += 1
-#        return {"event" : MOTION_SENSOR_TRIPPED, "hour" : hour, "counter" : per_hour_counters[hour]}
-        return {"event" : MOTION_SENSOR_TRIPPED}
+    def stop_the_inner_thread(self):
+        # it could have Timer threads running
+        self._email_retry_manager.reset()
+
+    def callback(self, per_hour_counters):
+        return {"event":BUTTON_PRESSED}
 
 ########################################################################
 #
@@ -57,21 +69,21 @@ class Motion_Sensor():
 
 if __name__ == "__main__":
 
+#    from pudb import set_trace; set_trace()
     logging.basicConfig(level=logging.DEBUG)
-#    per_hour_counters =  [0] * 24
+
     event_queue = Queue.Queue()
+    bs = Button_Sensor(event_queue, test_flags=[USE_MOCK_MAILMAN])
 
     try:
-        ms = Motion_Sensor(event_queue)
 
         while 1:
             event = event_queue.get(BLOCK, ONE_YEAR_TIMEOUT)  # needs some timeout to respond to keyboard interrupt
-#            event.callback(per_hour_counters)
-            message = event.callback()
-            print message
-#            logging.debug(repr(per_hour_counters))
+            update = event.callback()
+            print update
 
+    except KeyboardInterrupt: pass
+    
     finally:
         GPIO.cleanup()
-
 
