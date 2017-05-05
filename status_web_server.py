@@ -76,7 +76,18 @@ class Status_Web_Server(threading.Thread):
 
         threading.Thread.__init__(self)
         self._test_flags = test_flags
-        self.server = SocketServer.TCPServer((HOST, PORT), MyTCPHandler)
+
+        # if program is killed, then immediately restarted, the port may not
+        # be available yet.
+        for i in range(3):
+            try:
+                self.server = SocketServer.TCPServer((HOST, PORT), MyTCPHandler)
+                break
+                logging.debug("Couldn't open SocketServer, retrying ...")
+                time.sleep(30)   # seconds
+            except:
+                pass
+
         # The handler has a reference to the server.  So, to pass something
         # to the handler, we dynamically add it to the server:
         self.server.event_monitor = event_monitor
@@ -120,5 +131,14 @@ def main():
 if __name__ == "__main__":
 
     logging.basicConfig(level=logging.DEBUG)
-    main()
+
+    if "test1" in sys.argv:
+ 
+        sws = Status_Web_Server(dummy_event_monitor(), test_flags=[PRINT_WEB_SERVER_ACTIVITY])
+        sws.shutdown()
+        sws = Status_Web_Server(dummy_event_monitor(), test_flags=[PRINT_WEB_SERVER_ACTIVITY])
+        sws.shutdown()
+
+    else:
+        main()
 
