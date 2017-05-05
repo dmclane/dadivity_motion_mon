@@ -25,19 +25,22 @@ class Event_Monitor:
 
     history_str = ''
 
-#    def __init__(self, counters, test_flags=[]):
-    def __init__(self, test_flags=[]):
+    def __init__(self, counters, test_flags=[]):
         self.daily_email_history = deque('.....', maxlen=5)
         self.button_email_history = deque('.....', maxlen=5)
         self.retry_history = deque('.....', maxlen=5)
         self.test_flags = test_flags
-#        self.display(counters)
+        self.display(counters)
 
     def get_history_str(self):
         return self.history_str
 
     def update(self, event, counters):
+
         if event["event"] == MOTION_SENSOR_TRIPPED:
+            self.display(counters)
+
+        elif event["event"] == HOUR_TICK:
             self.display(counters)
 
         elif event["event"] == DAILY_EMAIL_SENT:
@@ -45,7 +48,6 @@ class Event_Monitor:
                 self.daily_email_history.appendleft('successful send, ' + time.asctime())
             else:
                 self.daily_email_history.appendleft('send not successful, ' + time.asctime() + '\n' + event["email_error"])
-#            self.daily_email_history.pop()
             self.display(counters)
 
         elif event["event"] == BUTTON_EMAIL_SENT:
@@ -56,7 +58,6 @@ class Event_Monitor:
                     self.button_email_history.appendleft('email sent, ' + time.asctime())
                 else:
                     self.button_email_history.appendleft('email attempted, ' + time.asctime() + '\n' + event["email_error"])
-#            self.button_email_history.pop()    # drop off the oldest entry
             self.display(counters)
 
         elif event["event"] == EMAIL_RETRY:
@@ -66,7 +67,6 @@ class Event_Monitor:
             else:
                 retry_msg.append('success')
             self.retry_history.appendleft("".join(retry_msg))
-#            self.retry_history.pop()
             self.display(counters)
 
 

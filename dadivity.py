@@ -80,7 +80,7 @@ class dadivity():
         self.motion_mailer = Email_Motion_Report(self.event_queue, test_flags=self.test_flags)
         self.motion_sense = Motion_Sensor(self.event_queue)
         self.button_send = Button_Email(self.event_queue, test_flags=self.test_flags)
-        self.event_monitor = Event_Monitor()
+        self.event_monitor = Event_Monitor(self.counters, test_flags=self.test_flags)
         self.web_stats = Status_Web_Server(self.event_monitor)
 
         # check to see if time is reasonable.  NTP may not have set the time
@@ -92,8 +92,8 @@ class dadivity():
 
         self.start_time = datetime.datetime.now()
 
-        self.stop_test_generator_event = threading.Event()
-        Generate_Test_Events(self.stop_test_generator_event, self.event_queue, self.motion_sense)
+#        self.stop_test_generator_event = threading.Event()
+#        Generate_Test_Events(self.stop_test_generator_event, self.event_queue, self.motion_sense)
 
 ########################################################################
 #
@@ -119,7 +119,7 @@ class dadivity():
         finally:
 
             self.stop_hourly_tick_event.set()
-            self.stop_test_generator_event.set()
+#            self.stop_test_generator_event.set()
             self.button_send.stop_any_pending_retries()
             self.motion_mailer.stop_any_pending_retries()
             self.web_stats.shutdown()
@@ -145,6 +145,7 @@ class dadivity():
                 logging.debug("update_msg: " + repr(update_msg))
                 self.event_monitor.update(update_msg, self.counters)
             self.counters.new_hour(message["current_hour"])
+            self.event_monitor.update(message, self.counters)
 
         elif message["event"] == RETRY_MOTION_EMAIL:
 
@@ -155,15 +156,16 @@ class dadivity():
         elif message["event"] == MOTION_SENSOR_TRIPPED:
 
             self.counters.motion_hit()
+            self.event_monitor.update(message, self.counters)
 
         elif message["event"] == BUTTON_PRESSED:
 
-            pass
+            self.button_email.send()
+            self.event_monitor.update(message, self.counters)
 
         elif message["event"] == BUTTON_EMAIL_SENT:
 
-            pass
-            # self.event_monitor.update(message)
+            self.event_monitor.update(message)
 
 
 ########################################################################

@@ -61,9 +61,10 @@ class MyTCPHandler(SocketServer.BaseRequestHandler):
         # self.request is the TCP socket connected to the client
         data = self.request.recv(2048).strip()
         recieved_length = len(data)
-        logging.debug("length recieved: " + str(recieved_length))
-        logging.debug("{} wrote:".format(self.client_address[0]))
-        logging.debug(data)
+        if PRINT_WEB_SERVER_ACTIVITY in self.server._test_flags:
+            logging.debug("length recieved: " + str(recieved_length))
+            logging.debug("{} wrote:".format(self.client_address[0]))
+            logging.debug(data)
         if recieved_length > 0:   # on shutdown you come here with a length of 0.
             status = self.server.event_monitor.get_history_str() # atomic operation, strings are immutable
             response = "".join([response_preamble, status, response_postamble])
@@ -74,10 +75,12 @@ class Status_Web_Server(threading.Thread):
     def __init__(self, event_monitor, test_flags=[]):
 
         threading.Thread.__init__(self)
+        self._test_flags = test_flags
         self.server = SocketServer.TCPServer((HOST, PORT), MyTCPHandler)
         # The handler has a reference to the server.  So, to pass something
         # to the handler, we dynamically add it to the server:
         self.server.event_monitor = event_monitor
+        self.server._test_flags = self._test_flags
         self.start()
 
     def run(self):
@@ -118,3 +121,4 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.DEBUG)
     main()
+
