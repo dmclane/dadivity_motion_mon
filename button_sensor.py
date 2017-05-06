@@ -54,10 +54,6 @@ class Button_Sensor():
     def button_press(self, pin):   # our interrupt handler
         self._event_queue.put(self)
 
-    def stop_the_inner_thread(self):
-        # it could have Timer threads running
-        self._email_retry_manager.reset()
-
     def callback(self, per_hour_counters):
         return {"event":BUTTON_PRESSED}
 
