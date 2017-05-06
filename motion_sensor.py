@@ -1,3 +1,9 @@
+"""Detect pulse from motion sensor.
+
+Pulse from motion sensor triggers interrup.  Handler puts reference to self
+in a queue.  Callback returns a message.
+"""
+
 """
 Copyright 2016 Don McLane
 
@@ -42,11 +48,7 @@ class Motion_Sensor():
     def motion_detected(self, pin):   # our interrupt handler
         self.q.put(self)
 
-#    def callback(self, per_hour_counters):
     def callback(self):
-#        hour = time.localtime().tm_hour
-#        per_hour_counters[hour] += 1
-#        return {"event" : MOTION_SENSOR_TRIPPED, "hour" : hour, "counter" : per_hour_counters[hour]}
         return {"event" : MOTION_SENSOR_TRIPPED}
 
 ########################################################################
@@ -58,7 +60,6 @@ class Motion_Sensor():
 if __name__ == "__main__":
 
     logging.basicConfig(level=logging.DEBUG)
-#    per_hour_counters =  [0] * 24
     event_queue = Queue.Queue()
 
     try:
@@ -66,10 +67,8 @@ if __name__ == "__main__":
 
         while 1:
             event = event_queue.get(BLOCK, ONE_YEAR_TIMEOUT)  # needs some timeout to respond to keyboard interrupt
-#            event.callback(per_hour_counters)
             message = event.callback()
             print message
-#            logging.debug(repr(per_hour_counters))
 
     finally:
         GPIO.cleanup()

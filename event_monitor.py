@@ -43,7 +43,7 @@ class Event_Monitor:
         elif event["event"] == HOUR_TICK:
             self.display(counters)
 
-        elif event["event"] == DAILY_EMAIL_SENT:
+        elif event["event"] == MOTION_REPORT_SENT:
             if event["email_error"] == None:
                 self.daily_email_history.appendleft('successful send, ' + time.asctime())
             else:
@@ -106,9 +106,9 @@ if __name__ == "__main__":
     em = Event_Monitor(counters, test_flags=[PRINT_MONITOR])
     em.update({"event":MOTION_SENSOR_TRIPPED, "hour":4, "counter":1}, counters)
     print "--------------------------------------------------------------------------"
-    em.update({"event":DAILY_EMAIL_SENT, "email_error":None}, counters)
+    em.update({"event":MOTION_REPORT_SENT, "email_error":None}, counters)
     print "--------------------------------------------------------------------------"
-    em.update({"event":DAILY_EMAIL_SENT, "email_error":"error occured"}, counters)
+    em.update({"event":MOTION_REPORT_SENT, "email_error":"error occured"}, counters)
     print "--------------------------------------------------------------------------"
     em.update({"event":BUTTON_EMAIL_SENT, "within_an_hour":True, "email_error":None}, counters)
     print "--------------------------------------------------------------------------"

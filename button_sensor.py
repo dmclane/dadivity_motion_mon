@@ -1,5 +1,11 @@
 #! /usr/bin/python
 
+"""Detect when a button is pressed.
+
+When a button is pressed, put reference to yourself in a queue.  On
+callback, return a message.  Installs interrupt handler.
+"""
+
 """
 Copyright 2016 Don McLane
 
@@ -16,25 +22,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import time
-import sys
 import Queue
 from datetime import datetime as dt
 import datetime
 import logging
-import send_email
-import dadivity_config
 from dadivity_constants import *
 from pi_resources import *
-from email_retry_manager import Email_Retry_Manager
 
 try:
     import RPi.GPIO as GPIO
 except ImportError:
     import mock_GPIO as GPIO     # to test code when not on a Pi
 
-LOW_FREQUENCY = 800
-HIGH_FREQUENCY = 1220
 ONE_YEAR_TIMEOUT = 365 * 24 * 60 * 60
 BLOCK = True
 
@@ -43,7 +42,6 @@ class Button_Sensor():
         self._event_queue = event_queue
         self._test_flags = test_flags
         self._last_time = dt.now() - datetime.timedelta(hours=2)
-        self._email_retry_manager = Email_Retry_Manager(self._event_queue, self._test_flags)
 
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(BUTTON_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
@@ -54,7 +52,7 @@ class Button_Sensor():
     def button_press(self, pin):   # our interrupt handler
         self._event_queue.put(self)
 
-    def callback(self, per_hour_counters):
+    def callback(self):
         return {"event":BUTTON_PRESSED}
 
 ########################################################################

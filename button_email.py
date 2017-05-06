@@ -59,7 +59,6 @@ class Button_Email():
         # it could have Timer threads running
         self._email_retry_manager.reset()
 
-#    def send(self, per_hour_counters):
     def send(self):
 
         # only allow one email per hour

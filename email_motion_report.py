@@ -47,7 +47,7 @@ class Email_Motion_Report():
         if email_error != None:
             self._email_retry_manager.start_retrying(email_subject, email_message)
 
-        return {"event": DAILY_EMAIL_SENT, "email_error": email_error}
+        return {"event": MOTION_REPORT_SENT, "email_error": email_error}
 
     def compose_email_msg(self, ascii_bar_chart):
         msg = []
