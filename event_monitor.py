@@ -1,4 +1,8 @@
 #! /usr/bin/python
+""" Keeps a record of recent activity.
+
+Provides data for status_web_server.
+"""
 
 """
 Copyright 2016 Don McLane
@@ -19,79 +23,106 @@ limitations under the License.
 import time
 from collections import deque
 from dadivity_constants import *
-from per_hour_counters import Per_Hour_Counters
+from per_hour_counters import Per_Hour_Counters, make_some_interesting_data
 
-class Event_Monitor:
+class Event_Monitor(object):
+    """ Maintains a string with info about recent activity.
 
-    history_str = ''
+    Info consists of motion counts for each of the last 24 hours, the last
+    several times that motion report email was sent, the last several times
+    button initiated email was sent, and the last several times email was
+    retried due to an error while trying to send email.
+    """
 
     def __init__(self, counters, test_flags=[]):
-        self.daily_email_history = deque('.....', maxlen=5)
-        self.button_email_history = deque('.....', maxlen=5)
-        self.retry_history = deque('.....', maxlen=5)
-        self.test_flags = test_flags
-        self.display(counters)
+        self._daily_email_history = deque('.....', maxlen=5)
+        self._button_email_history = deque('.....', maxlen=5)
+        self._retry_history = deque('.....', maxlen=5)
+        self._test_flags = test_flags
+        self._history_str = ""
+        self._create_history_str(counters)
 
     def get_history_str(self):
-        return self.history_str
+        """ Returns history string.
 
-    def update(self, event, counters):
+        Called by another thread (status_web_server), but since strings are
+        immutable, it shouldn't be a problem.
+        """
+        return self._history_str
 
-        if event["event"] == MOTION_SENSOR_TRIPPED:
-            self.display(counters)
+    def update(self, message, counters):
+        """ Update the history string.
 
-        elif event["event"] == HOUR_TICK:
-            self.display(counters)
+        Args:
+            message: a dictionary with at least on entry called "event".
+            counter: an instance of Per_Hour_Counters
+        """
 
-        elif event["event"] == MOTION_REPORT_SENT:
-            if event["email_error"] == None:
-                self.daily_email_history.appendleft('successful send, ' + time.asctime())
+        if message["event"] == MOTION_SENSOR_TRIPPED:
+            self._create_history_str(counters)
+
+        elif message["event"] == HOUR_TICK:
+            self._create_history_str(counters)
+
+        elif message["event"] == MOTION_REPORT_SENT:
+            if message["email_error"] == None:
+                self._daily_email_history.appendleft('successful send, '
+                                                     + time.asctime())
             else:
-                self.daily_email_history.appendleft('send not successful, ' + time.asctime() + '\n' + event["email_error"])
-            self.display(counters)
+                self._daily_email_history.appendleft('send not successful, '
+                                                     + time.asctime() + '\n'
+                                                     + message["email_error"])
+            self._create_history_str(counters)
 
-        elif event["event"] == BUTTON_EMAIL_SENT:
-            if event["within_an_hour"]:
-                self.button_email_history.appendleft('button pressed within an hour of last time, no email sent, ' + time.asctime())
+        elif message["event"] == BUTTON_EMAIL_SENT:
+            if message["within_an_hour"]:
+                self._button_email_history.appendleft(
+                    'button pressed within an hour of last time, no email sent, '
+                    + time.asctime())
             else:
-                if event["email_error"] == None:
-                    self.button_email_history.appendleft('email sent, ' + time.asctime())
+                if message["email_error"] == None:
+                    self._button_email_history.appendleft('email sent, '
+                                                          + time.asctime())
                 else:
-                    self.button_email_history.appendleft('email attempted, ' + time.asctime() + '\n' + event["email_error"])
-            self.display(counters)
+                    self._button_email_history.appendleft('email attempted, '
+                                                          + time.asctime()
+                                                          + '\n'
+                                                          + message["email_error"])
+            self._create_history_str(counters)
 
-        elif event["event"] == EMAIL_RETRY:
-            retry_msg = ['retry number: ' + str(event['retry_counter']) + ', ' + time.asctime() + '\n']
-            if event['email_error'] != None:
-                retry_msg.append('unsuccessful; ' + event['email_error'])
+        elif message["event"] == EMAIL_RETRY:
+            retry_msg = ['retry number: ' + str(message['retry_counter'])
+                         + ', ' + time.asctime() + '\n']
+            if message['email_error'] != None:
+                retry_msg.append('unsuccessful; ' + message['email_error'])
             else:
                 retry_msg.append('success')
-            self.retry_history.appendleft("".join(retry_msg))
-            self.display(counters)
+            self._retry_history.appendleft("".join(retry_msg))
+            self._create_history_str(counters)
 
 
-    def display(self, counters):
+    def _create_history_str(self, counters):
 
         text = []
         text.append(counters.format_ascii_bar_chart())
 
         text.append('\nDaily email history:\n')
-        for i in self.daily_email_history:
+        for i in self._daily_email_history:
             text.append(i)
             text.append('\n')
 
         text.append('\nButton email history:\n')
-        for i in self.button_email_history:
+        for i in self._button_email_history:
             text.append(i)
             text.append('\n')
 
         text.append('\nRetry email history:\n')
-        for i in self.retry_history:
+        for i in self._retry_history:
             text.append(i)
             text.append('\n')
-        self.history_str = "".join(text)
-        if PRINT_MONITOR in self.test_flags:
-            print self.history_str
+        self._history_str = "".join(text)
+        if PRINT_MONITOR in self._test_flags:
+            print self._history_str
 
 ########################################################################
 #
@@ -101,27 +132,24 @@ class Event_Monitor:
 
 if __name__ == "__main__":
     counters = Per_Hour_Counters()
-    for i in xrange(24):
-        counters.new_hour(i)
-    em = Event_Monitor(counters, test_flags=[PRINT_MONITOR])
-    em.update({"event":MOTION_SENSOR_TRIPPED, "hour":4, "counter":1}, counters)
-    print "--------------------------------------------------------------------------"
-    em.update({"event":MOTION_REPORT_SENT, "email_error":None}, counters)
-    print "--------------------------------------------------------------------------"
-    em.update({"event":MOTION_REPORT_SENT, "email_error":"error occured"}, counters)
-    print "--------------------------------------------------------------------------"
-    em.update({"event":BUTTON_EMAIL_SENT, "within_an_hour":True, "email_error":None}, counters)
-    print "--------------------------------------------------------------------------"
-    em.update({"event":BUTTON_EMAIL_SENT, "within_an_hour":False, "email_error":None}, counters)
-    print "--------------------------------------------------------------------------"
-    em.update({"event":BUTTON_EMAIL_SENT, "within_an_hour":True, "email_error":"error occured"}, counters)
-    print "--------------------------------------------------------------------------"
-    em.update({"event":BUTTON_EMAIL_SENT, "within_an_hour":False, "email_error":"error occured"}, counters)
-    print "--------------------------------------------------------------------------"
-    em.update({"event":BUTTON_EMAIL_SENT, "within_an_hour":False, "email_error":"error occured"}, counters)
-    print "--------------------------------------------------------------------------"
-    em.update({"event":BUTTON_EMAIL_SENT, "within_an_hour":False, "email_error":"error occured"}, counters)
-    print "--------------------------------------------------------------------------"
-    em.update({"event":BUTTON_EMAIL_SENT, "within_an_hour":False, "email_error":"error occured"}, counters)
-    print "--------------------------------------------------------------------------"
-    em.update({"event":BUTTON_EMAIL_SENT, "within_an_hour":False, "email_error":"error occured"}, counters)
+    make_some_interesting_data(counters)
+
+#    em = Event_Monitor(counters, test_flags=[PRINT_MONITOR])
+    em = Event_Monitor(counters)
+
+    em.update({"event":MOTION_SENSOR_TRIPPED},                                                        counters)
+    em.update({"event":MOTION_REPORT_SENT,                            "email_error":None},            counters)
+    em.update({"event":MOTION_REPORT_SENT,                            "email_error":"error occured"}, counters)
+    em.update({"event":BUTTON_EMAIL_SENT,     "within_an_hour":True,  "email_error":None},            counters)
+    em.update({"event":BUTTON_EMAIL_SENT,     "within_an_hour":False, "email_error":None},            counters)
+    em.update({"event":BUTTON_EMAIL_SENT,     "within_an_hour":True,  "email_error":"error occured"}, counters)
+    em.update({"event":BUTTON_EMAIL_SENT,     "within_an_hour":False, "email_error":"error occured"}, counters)
+    em.update({"event":BUTTON_EMAIL_SENT,     "within_an_hour":False, "email_error":"error occured"}, counters)
+    em.update({"event":BUTTON_EMAIL_SENT,     "within_an_hour":False, "email_error":"error occured"}, counters)
+    em.update({"event":BUTTON_EMAIL_SENT,     "within_an_hour":False, "email_error":"error occured"}, counters)
+    em.update({"event":BUTTON_EMAIL_SENT,     "within_an_hour":False, "email_error":"error occured"}, counters)
+    em.update({"event":EMAIL_RETRY,           "retry_counter":1,      "email_error":"error occured"}, counters)
+    em.update({"event":EMAIL_RETRY,           "retry_counter":2,      "email_error":None}, counters)
+
+    print em.get_history_str()
+

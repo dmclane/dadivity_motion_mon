@@ -1,12 +1,14 @@
-# configuration file
-# Rename this to dadivity_config.py, and put in desired data.
-# Updating the software might overwrite template, but won't
-# overwrite dadivity_config.py.
+""" Dadivity configuration file.
+
+Copy this to dadivity_config.py, and edit with desired data.  Updating the
+software from git repository could overwrite config_template.py, but won't
+overwrite dadivity_config.py.
+"""
 
 # hour(s) on which to send email
 send_email_hour = [0, 12]   # integer(s) 0 to 23
 
-daily_email_subject = "Daily report"
+daily_email_subject = "Motion report"
 
 button_subject = "Button message"
 button_message = "Call me, next time you get a chance."
@@ -20,6 +22,6 @@ gmail_from_address = 'example@example.com'
 gmail_passwd = 'password'
 gmail_outgoing_smtp_server = 'smtp.gmail.com:587'    # TLS supposedly
 
-
+web_server_port = 8888
 
 

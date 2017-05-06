@@ -19,13 +19,15 @@ limitations under the License.
 import SocketServer
 import threading
 import time
+import dadivity_config
 from dadivity_constants import *
 import sys
 import logging
 
 # HOST = 'localhost'   # if 'localhost', only available locally, '' for everywhere
 HOST = ''   # if 'localhost', only available locally, '' for everywhere
-PORT = 8888
+#PORT = 8888
+PORT = dadivity_config.web_server_port
 
 response_preamble = """\
 HTTP/1.1 200 OK

@@ -1,11 +1,13 @@
 #!/usr/bin/python2
 
-""" dad activity monitor
+""" An activity monitor.
 
-Monitors the activity as detected by a motion sensor.  Keeps track of the activity for each hour of a day.
-Emails a daily summary of activity.
+Monitors the activity as detected by a motion sensor.  Keeps track of the
+activity for each hour of a day.  Emails a summary of activity.
 
 There is also a button on the device to send an email message immediately.
+
+Serves a web page which displays recent activity.
 
 Configuration is done in the file dadivity_config.py
 """
@@ -53,7 +55,9 @@ import logging
 BLOCK = True
 ONE_YEAR_TIMEOUT = 365 * 24 * 60 * 60
 
-class dadivity():
+class Dadivity():
+
+    """ The main (root) class for the activity monitor. """
 
     def __init__(self, test_flags=[]):
         self.test_flags    = test_flags
@@ -82,11 +86,18 @@ class dadivity():
 
 ########################################################################
 #
-# Main Entry Point
+#              main()
 #
 ########################################################################
 
     def main(self):
+
+        """ Call this to start the program.
+        
+        Program is designed to run indefinately, so stop with control-c
+        (or kill -9 ...).
+
+        """
 
         try:
 
@@ -111,11 +122,16 @@ class dadivity():
 
 ########################################################################
 #
-# dispatch -- deal with messages that came out of queue
+#                       dispatch(...)
 #
 ########################################################################
 
     def dispatch(self, message):
+        """ Deal with messages that came out of the queue.
+        
+        Args:
+            message: a dictionary which has at least an entry for "event".
+        """
 
         if DISPLAY_ACTIVITY in self.test_flags:
 
@@ -153,11 +169,6 @@ class dadivity():
                 print "update message:", dadivity_event_name[update_msg["event"]]
             self.event_monitor.update(update_msg, self.counters)
 
-#        elif message["event"] == BUTTON_EMAIL_SENT:
-
-#            self.event_monitor.update(message)
-
-
 ########################################################################
 #
 # End of class Dadivity
@@ -168,16 +179,16 @@ if __name__ == '__main__':
 
     if 'test1' in sys.argv:
         logging.basicConfig(level=logging.DEBUG)
-        dadivity(test_flags=[FAST_MODE, DISPLAY_ACTIVITY, JUST_PRINT_MESSAGE]).main()
+        Dadivity(test_flags=[FAST_MODE, DISPLAY_ACTIVITY, JUST_PRINT_MESSAGE]).main()
 
     elif 'test2' in sys.argv:
         logging.basicConfig(level=logging.DEBUG)
-        dadivity(test_flags=[DISPLAY_ACTIVITY, FAST_MODE, USE_MOCK_MAILMAN, FAST_RETRY, MOCK_ERROR]).main()
+        Dadivity(test_flags=[DISPLAY_ACTIVITY, FAST_MODE, USE_MOCK_MAILMAN, FAST_RETRY, MOCK_ERROR]).main()
 
     elif 'test3' in sys.argv:
         logging.basicConfig(level=logging.DEBUG)
-        dadivity(test_flags=[DISPLAY_ACTIVITY]).main()
+        Dadivity(test_flags=[DISPLAY_ACTIVITY]).main()
 
     else:
-        dadivity().main()
+        Dadivity().main()
 
