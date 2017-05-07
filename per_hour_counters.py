@@ -13,6 +13,7 @@ class Per_Hour_Counters:
     def __init__(self):
         self.counters = collections.deque(maxlen=24)
         self.counters.appendleft([dt.now().hour, 0])
+        self.starting_time = time.asctime()
 
     def new_hour(self, hour):
         self.counters.appendleft([hour, 0])    # count starts at 0
@@ -43,6 +44,9 @@ class Per_Hour_Counters:
             bar_length = min(count, 60)
             msg.append('*' * bar_length)
             msg.append('\n')
+        msg.append("\nRunning since: ")
+        msg.append(self.starting_time)
+        msg.append('\n')
         return "".join(msg)
 
 #######################################################################

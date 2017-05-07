@@ -82,8 +82,6 @@ class Dadivity():
                 break
             time.sleep(1)    # seconds
 
-        self.start_time = datetime.datetime.now()
-
 ########################################################################
 #
 #              main()
