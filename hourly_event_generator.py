@@ -96,15 +96,11 @@ def dispatch(message):
 
     if message["event"] == HOUR_TICK:
         if message["current_hour"] in dadivity_config.send_email_hour:
-            print "send email" 
+            print "send email"
         counters.new_hour(message["current_hour"])
 
     elif message["event"] == MOTION_SENSOR_TRIPPED:
         counters.motion_hit()
-
-#    elif message["event"] == BUTTON_PRESSED:
-#        pass
-
 
 if __name__ == '__main__':
 
@@ -121,7 +117,8 @@ if __name__ == '__main__':
         print "starting", dt.now()
         event_queue = Queue.Queue()
         stop_event = threading.Event()
-        hegt = Hourly_Event_Generator_Thread(event_queue, stop_event, test_flags=[FAST_MODE])
+        hegt = Hourly_Event_Generator_Thread(event_queue, stop_event,
+                                             test_flags=[FAST_MODE])
         hegt.start()
         counters = Per_Hour_Counters()
         try:
