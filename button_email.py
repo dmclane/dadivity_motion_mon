@@ -46,7 +46,7 @@ HIGH_FREQUENCY = 1220                   # Hz.
 ONE_YEAR_TIMEOUT = 365 * 24 * 60 * 60   # seconds
 BLOCK = True
 
-class Button_Email():
+class Button_Email(object):
 
     def __init__(self, queue, test_flags=[]):
 
@@ -112,7 +112,7 @@ def debug_main():
     per_hour_counters.make_some_interesting_data(counters)
     event_queue = Queue.Queue()
     be = Button_Email(event_queue, test_flags=[JUST_PRINT_MESSAGE])
-    send_result = be.send(counters.format_ascii_bar_chart())
+    send_result = be.send()
     print "send_result:", send_result
 
 #    try:
@@ -135,17 +135,17 @@ if __name__ == "__main__":
         if 'beep1' in sys.argv:
 
             # test the low frequency tone
-            button_email(Queue.Queue()).beep(LOW_FREQUENCY)
+            Button_Email(Queue.Queue()).beep(LOW_FREQUENCY)
 
         elif 'beep2' in sys.argv:
 
             #test the high frequency tone
-            button_email(Queue.Queue()).beep(HIGH_FREQUENCY)
+            Button_Email(Queue.Queue()).beep(HIGH_FREQUENCY)
 
         elif 'beep3' in sys.argv:
 
             # sweep tone frequency to determine which tones sound best
-            be = button_email(Queue.Queue())
+            be = Button_Email(Queue.Queue())
             for i in xrange(400, 3000, 20):
                 print i
                 be.beep(i)

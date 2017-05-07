@@ -37,7 +37,7 @@ except ImportError:
 ONE_YEAR_TIMEOUT = 365 * 24 * 60 * 60
 BLOCK = True
 
-class Button_Sensor():
+class Button_Sensor(object):
     def __init__(self, event_queue, test_flags=[]):
         self._event_queue = event_queue
         self._test_flags = test_flags
@@ -49,7 +49,8 @@ class Button_Sensor():
         GPIO.setup(BEEPER_PIN_2, GPIO.OUT)
         GPIO.add_event_detect(BUTTON_PIN, GPIO.FALLING, callback=self.button_press, bouncetime=500)
 
-    def button_press(self, pin):   # our interrupt handler
+    def button_press(self, pin):
+        """ Our interrupt handler. """
         self._event_queue.put(self)
 
     def callback(self):
@@ -77,7 +78,7 @@ if __name__ == "__main__":
             print update
 
     except KeyboardInterrupt: pass
-    
+
     finally:
         GPIO.cleanup()
 

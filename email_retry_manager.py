@@ -28,7 +28,6 @@ limitations under the License.
 
 import Queue
 import threading
-import dadivity_config
 from dadivity_constants import *
 import send_email
 import time
@@ -38,13 +37,20 @@ MAX_RETRIES = 4
 RESET_FLAG = -1
 HOUR = 60 * 60
 
-class Email_Retry_Manager:
+class Email_Retry_Manager(object):
+    """ Retry sending email after an error.
+
+    Interval between retries becomes progressivly longer if attempts
+    continue to fail.
+    """
 
     def __init__(self, event_queue, test_flags=[]):
         self._q = event_queue
         self._retry_counter = RESET_FLAG
         self._retry_timer = None
         self._test_flags = test_flags
+        self._msg = ""
+        self._subject = ""
         if FAST_RETRY in self._test_flags:
             self._base_wait = 1                # seconds
         elif FAST_MODE in self._test_flags:
@@ -53,7 +59,9 @@ class Email_Retry_Manager:
             self._base_wait = HOUR
 
     def start_retrying(self, subject, msg):
-        """ Call this the first time to start the retry process.  After that, retries are handled here.
+        """ Call this the first time to start the retry process.
+
+        After the first time, retries are handled in motion_email_retry.
         """
         self._msg = msg
         self._subject = subject
@@ -64,9 +72,11 @@ class Email_Retry_Manager:
         self._retry_counter = 1
 
     def retry_again(self):
+        """ Schedule another retry."""
         if self._retry_counter < MAX_RETRIES:
             wait_multiplier = 2 ** self._retry_counter         # 2, 4, 8
-            self._retry_timer = threading.Timer(self._base_wait * wait_multiplier,  self._q.put, [self])
+            self._retry_timer = threading.Timer(self._base_wait * wait_multiplier,
+                                                self._q.put, [self])
             self._retry_timer.start()
             self._retry_counter += 1
         else:
@@ -81,8 +91,14 @@ class Email_Retry_Manager:
         return {"event":RETRY_MOTION_EMAIL}
 
     def motion_email_retry(self):
+        """ Try to send again.
+
+        Called after timer puts instance of self in queue and callback returns
+        a message which is dispatched as a call to this method.
+        """
         email_error = None
-        current_retry_counter = self._retry_counter      # save current value because it's incremented in retry_again()
+        current_retry_counter = self._retry_counter
+        # save current value because it's incremented in retry_again()
         logging.debug("current_retry_counter = " + str(current_retry_counter))
         if self._retry_counter != RESET_FLAG:
             message = "retry # " + str(self._retry_counter) + "\n" + self._msg

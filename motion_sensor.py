@@ -20,10 +20,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import time
+#import time
 import Queue
-import time
-from datetime import datetime as dt
+#from datetime import datetime as dt
 import logging
 from dadivity_constants import *
 from pi_resources import *
@@ -37,7 +36,7 @@ except ImportError:
 ONE_YEAR_TIMEOUT = 365 * 24 * 60 * 60
 BLOCK = True
 
-class Motion_Sensor():
+class Motion_Sensor(object):
     def __init__(self, event_queue):
         self.q = event_queue
         self.motion_sensor_pin = MOTION_SENSOR_PIN

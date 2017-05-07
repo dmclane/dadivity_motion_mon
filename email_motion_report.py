@@ -1,4 +1,7 @@
 #! /usr/bin/python
+""" Send email, retrying if there's an error.
+
+"""
 
 """
 Copyright 2016 Don McLane
@@ -17,8 +20,8 @@ limitations under the License.
 """
 
 import time, sys
-from datetime import datetime as dt
-import datetime
+#from datetime import datetime as dt
+#import datetime
 import dadivity_config
 from dadivity_constants import *
 import send_email
@@ -29,16 +32,20 @@ import logging
 import per_hour_counters
 import Queue
 
-class Email_Motion_Report():
+class Email_Motion_Report(object):
     """ Send email, with a summary of activity detected by the
         motion sensor.
     """
     def __init__(self, queue, test_flags=[]):
         self._test_flags = test_flags
-        self._email_retry_manager = Email_Retry_Manager(queue, test_flags=test_flags)
+        self._email_retry_manager = Email_Retry_Manager(queue,
+                                                        test_flags=test_flags)
 
     def send(self, ascii_bar_chart):
-        email_message = self.compose_email_msg(ascii_bar_chart)
+        msg = []
+        msg.append('Sent: ' + time.asctime() + '\n')
+        msg.append(ascii_bar_chart)
+        email_message = "".join(msg)
         email_subject = dadivity_config.daily_email_subject
         email_error = send_email.dadivity_send(email_subject,
                                                email_message,
@@ -49,11 +56,11 @@ class Email_Motion_Report():
 
         return {"event": MOTION_REPORT_SENT, "email_error": email_error}
 
-    def compose_email_msg(self, ascii_bar_chart):
-        msg = []
-        msg.append('Sent: ' + time.asctime() + '\n')
-        msg.append(ascii_bar_chart)
-        return "".join(msg)
+#    def compose_email_msg(self, ascii_bar_chart):
+#        msg = []
+#        msg.append('Sent: ' + time.asctime() + '\n')
+#        msg.append(ascii_bar_chart)
+#        return "".join(msg)
 
     def retry(self):
         return self._email_retry_manager.motion_email_retry()
