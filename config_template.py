@@ -6,7 +6,7 @@ overwrite dadivity_config.py.
 """
 
 # hour(s) on which to send email
-send_email_hour = [0, 12]   # integer(s) 0 to 23
+send_email_hour = [0, 22]   # integer(s) 0 to 23
 
 daily_email_subject = "Motion report"
 
