@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 
 """
 Copyright 2016 Don McLane
@@ -17,9 +17,9 @@ limitations under the License.
 """
 
 import time, sys
+import queue
 from datetime import datetime as dt
 import datetime
-import Queue
 import threading
 import dadivity_config
 from dadivity_constants import *
@@ -96,7 +96,7 @@ def dispatch(message):
 
     if message["event"] == HOUR_TICK:
         if message["current_hour"] in dadivity_config.send_email_hour:
-            print "send email"
+            print("send email")
         counters.new_hour(message["current_hour"])
 
     elif message["event"] == MOTION_SENSOR_TRIPPED:
@@ -108,18 +108,17 @@ if __name__ == '__main__':
 #    logging.basicConfig(level=logging.DEBUG)
 
     if 'test1' in sys.argv:
-        hegt = Hourly_Event_Generator_Thread(Queue.Queue(), mock_stop_event())
-        print dt.now()
+        hegt = Hourly_Event_Generator_Thread(queue.Queue(), mock_stop_event())
+        print(dt.now())
         hegt.calc_next_time(dt.now())
-        print hegt._next_time
+        print(hegt._next_time)
 
     if 'test2' in sys.argv:
-        print "starting", dt.now()
-        event_queue = Queue.Queue()
+        print("starting", dt.now())
+        event_queue = queue.Queue()
         stop_event = threading.Event()
         hegt = Hourly_Event_Generator_Thread(event_queue, stop_event,
                                              test_flags=[FAST_MODE])
-        hegt.start()
         counters = Per_Hour_Counters()
         try:
             # your basic event loop
@@ -128,13 +127,13 @@ if __name__ == '__main__':
                 event_source = event_queue.get(BLOCK, ONE_YEAR_TIMEOUT)
                 message = event_source.callback()
                 event_queue.task_done()
-                print dt.now()
-                print message
+                print(dt.now())
+                print(message)
                 dispatch(message)
         except KeyboardInterrupt:
             pass
         finally:
-            print counters.counters
+            print(counters.counters)
             stop_event.set()
 
 

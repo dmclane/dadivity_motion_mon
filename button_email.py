@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 
 """ Send email, not more often than once per hour, retry if necessary.
 
@@ -25,7 +25,7 @@ produce a low frequency tone.
 
 import time
 import sys
-import Queue
+import queue
 from datetime import datetime as dt
 import datetime
 import logging
@@ -90,7 +90,7 @@ class Button_Email(object):
         period = 1.0 / freq
         half_period = period / 2.0
 
-        for i in xrange(freq):
+        for i in range(freq):
             # toggle two IO pins for more volume
             GPIO.output(BEEPER_PIN_1, True)
             GPIO.output(BEEPER_PIN_2, False)
@@ -110,10 +110,10 @@ def debug_main():
 
     counters = per_hour_counters.Per_Hour_Counters()
     per_hour_counters.make_some_interesting_data(counters)
-    event_queue = Queue.Queue()
+    event_queue = queue.Queue()
     be = Button_Email(event_queue, test_flags=[JUST_PRINT_MESSAGE])
     send_result = be.send()
-    print "send_result:", send_result
+    print("send_result:", send_result)
 
 #    try:
 
@@ -135,19 +135,19 @@ if __name__ == "__main__":
         if 'beep1' in sys.argv:
 
             # test the low frequency tone
-            Button_Email(Queue.Queue()).beep(LOW_FREQUENCY)
+            Button_Email(queue.Queue()).beep(LOW_FREQUENCY)
 
         elif 'beep2' in sys.argv:
 
             #test the high frequency tone
-            Button_Email(Queue.Queue()).beep(HIGH_FREQUENCY)
+            Button_Email(queue.Queue()).beep(HIGH_FREQUENCY)
 
         elif 'beep3' in sys.argv:
 
             # sweep tone frequency to determine which tones sound best
-            be = Button_Email(Queue.Queue())
-            for i in xrange(400, 3000, 20):
-                print i
+            be = Button_Email(queue.Queue())
+            for i in range(400, 3000, 20):
+                print(i)
                 be.beep(i)
 
         else:

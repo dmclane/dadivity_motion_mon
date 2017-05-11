@@ -1,4 +1,4 @@
-#! /bin/python
+#! /bin/python3
 
 """
 If we get an error, when sending email, try again a few times.
@@ -26,7 +26,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import Queue
+import queue
 import threading
 from dadivity_constants import *
 import send_email
@@ -125,20 +125,20 @@ if __name__ == "__main__":
     ONE_YEAR_TIMEOUT = 365 * 24 * 60 *60
 
     per_hour_counters = [0] * 24
-    event_queue = Queue.Queue()
+    event_queue = queue.Queue()
     erm = Email_Retry_Manager(event_queue, test_flags=[FAST_RETRY, MOCK_ERROR, JUST_PRINT_MESSAGE])
     erm.start_retrying("test subject", "test message")
 
     try:
 
-        for i in xrange(10):
+        for i in range(10):
             event = event_queue.get(timeout=ONE_YEAR_TIMEOUT)
             message = event.callback()
-            print repr(message)
+            print(repr(message))
             if message["event"] == RETRY_MOTION_EMAIL:
                 erm.motion_email_retry()
-            print time.asctime()
-            print "\n*********************************************\n"
+            print(time.asctime())
+            print("\n*********************************************\n")
             # if i == 2:
             #     erm.reset()
             #     print "\n---------- reset ---------\n"

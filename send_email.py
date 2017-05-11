@@ -1,3 +1,5 @@
+#! /usr/bin/python3
+
 """ send_email.py -- send email
 
 Originally from my course automation software, which is why it has options for different email
@@ -27,7 +29,7 @@ import dadivity_config
 from dadivity_constants import *
 import logging
 
-test_dest = dadivity_config.gmail_account
+test_dest = dadivity_config.email_recipients[0]
 default_from_addr = dadivity_config.gmail_from_address
 
 def mailman_factory(**kwargs):
@@ -125,22 +127,22 @@ class NullMailman(object):
     """
 
     def __init__(self, from_address, email_server='default', account='default', smtp_debug_level=0):
-        print "from_address =", from_address
-        print "email_server =", email_server
-        print "account = ", account
-        print "smtp_debug_level =", smtp_debug_level
+        print("from_address =", from_address)
+        print("email_server =", email_server)
+        print("account = ", account)
+        print("smtp_debug_level =", smtp_debug_level)
 
     def basic_send(self, subject, to_address, msg):
-        print "basic_send(...)"
+        print("basic_send(...)")
 
     def list_send(self, subject, msg, **kwargs):
-        print "list_send(...)"
+        print("list_send(...)")
 
     def set_debuglevel(self, n):
-        print "set_debugLevel(...)"
+        print("set_debugLevel(...)")
 
     def sendmail(self, fromaddr, toaddr, msg):
-        print "sendmail(...)"
+        print("sendmail(...)")
 
     def quit(self): pass
 
@@ -194,18 +196,18 @@ class GmailMailman(BasicMailman):
     default_port = 25
     pw = dadivity_config.gmail_passwd
 
-    def __init__(self, from_address, email_server=dadivity_config.gmail_outgoing_smtp_server,
-                 account=dadivity_config.gmail_account, smtp_debug_level=0):
-        # Call super class constructor, if any.
-        for base in self.__class__.__bases__:
-            if hasattr(base, '__init'):
-                base.__init__(self)
+    def __init__(self, from_address,
+                 email_server=dadivity_config.gmail_outgoing_smtp_server,
+                 account=dadivity_config.gmail_account,
+                 smtp_debug_level=0):
+#        super().__init__(host="smtp.gmail.com", port=587)
+        super().__init__(host=email_server)
         self.from_address = from_address
         if GmailMailman.pw == None:
             GmailMailman.pw = getpass.getpass('Password for ' + account
                                                   + '@' + email_server + ': ')
 
-        self.connect(email_server)
+        logging.debug("email_server = " + email_server)
         self.set_debuglevel(smtp_debug_level)
         self.starttls()
         self.login(account, GmailMailman.pw)
@@ -227,15 +229,16 @@ if __name__ == '__main__':
         send_a_message('test_sub', test_dest, 'this is a test', use_mailman='mock')
 
     if 'gmail' in sys.argv:
-        send_a_message(test_msg, test_dest, test_msg, use_mailman='gmail')
+        send_a_message(test_subject, test_dest, test_msg, use_mailman='gmail')
 
     if 'gmail1' in sys.argv:
-        send_a_message(test_msg, test_dest, test_msg, use_mailman='gmail', smtp_debug_level=1)
+        send_a_message(test_subject, test_dest, test_msg, use_mailman='gmail', smtp_debug_level=2)
 
     if 'dad' in sys.argv:
         email_error = dadivity_send(test_subject, test_msg)
-        print "email_error =", email_error
+        print("email_error =", email_error)
 
     if 'dad1' in sys.argv:
         email_error = dadivity_send(test_subject, test_msg, test_flags=[USE_MOCK_MAILMAN, MOCK_ERROR])
-        print "email_error =", email_error
+        print("email_error =", email_error)
+

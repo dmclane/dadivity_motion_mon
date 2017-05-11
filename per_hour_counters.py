@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 
 import sys, time
 import collections
@@ -58,7 +58,7 @@ class Per_Hour_Counters:
 def make_some_interesting_data(counters):
         for i in range(24):
             counters.new_hour(i)
-            for j in xrange(i * 3):
+            for j in range(i * 3):
                 counters.motion_hit()
  
 
@@ -66,22 +66,22 @@ if __name__ == "__main__":
 
     if "test1" in sys.argv:
         hc = Per_Hour_Counters()
-        print hc.counters
+        print(hc.counters)
         for i in range(24):
             hc.new_hour(i)
             hc.motion_hit()
-        print hc.counters
+        print(hc.counters)
         dup = hc.get_copy_of_counters()
         for i in range(4):
             hc.new_hour(i)
             hc.motion_hit()
             hc.motion_hit()
-        print hc.counters
-        print "copy ="
-        print dup
+        print(hc.counters)
+        print("copy =")
+        print(dup)
 
     if "test2" in sys.argv:
         hc = Per_Hour_Counters()
         make_some_interesting_data(hc)
-        print hc.format_ascii_bar_chart()
+        print(hc.format_ascii_bar_chart())
 

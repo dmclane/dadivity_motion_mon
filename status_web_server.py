@@ -18,7 +18,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import SocketServer
+import socketserver
 import threading
 import time
 import dadivity_config
@@ -51,7 +51,7 @@ response_postamble = """
 </html>
 """
 
-class MyTCPHandler(SocketServer.BaseRequestHandler):
+class MyTCPHandler(socketserver.BaseRequestHandler):
     """
     Produces the web page that displays recent activity.
 
@@ -89,7 +89,7 @@ class Status_Web_Server(threading.Thread):
         # windows laptop.
         for i in range(3):
             try:
-                self.server = SocketServer.TCPServer((HOST, PORT), MyTCPHandler)
+                self.server = socketserver.TCPServer((HOST, PORT), MyTCPHandler)
                 break
             except:
                 logging.debug("Couldn't open SocketServer, retrying ...")
@@ -128,7 +128,7 @@ def main():
 
     try:
         time.sleep(20)
-        print "timed out"
+        print("timed out")
 
     except KeyboardInterrupt: pass
 

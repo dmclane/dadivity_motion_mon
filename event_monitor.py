@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 """ Keeps a record of recent activity.
 
 Provides data for status_web_server.
@@ -122,7 +122,7 @@ class Event_Monitor(object):
             text.append('\n')
         self._history_str = "".join(text)
         if PRINT_MONITOR in self._test_flags:
-            print self._history_str
+            print(self._history_str)
 
 ########################################################################
 #
@@ -151,5 +151,5 @@ if __name__ == "__main__":
     em.update({"event":EMAIL_RETRY,           "retry_counter":1,      "email_error":"error occured"}, counters)
     em.update({"event":EMAIL_RETRY,           "retry_counter":2,      "email_error":None}, counters)
 
-    print em.get_history_str()
+    print(em.get_history_str())
 

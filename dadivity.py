@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 
 """ An activity monitor.
 
@@ -28,9 +28,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import queue
 import sys
 import threading
-import Queue
 import dadivity_config
 from dadivity_constants import *
 from motion_sensor import Motion_Sensor
@@ -61,7 +61,7 @@ class Dadivity():
 
     def __init__(self, test_flags=[]):
         self.test_flags    = test_flags
-        self.event_queue   = Queue.Queue()
+        self.event_queue   = queue.Queue()
         self.counters      = Per_Hour_Counters()
 
         self.stop_hourly_tick_event = threading.Event()
@@ -77,7 +77,7 @@ class Dadivity():
 
         # check to see if time is reasonable.  NTP may not have set the time
         # yet.  Don't wait forever though.
-        for i in xrange(30):
+        for i in range(30):
             if datetime.datetime.now() > datetime.datetime(2015, 1, 1):
                 break
             time.sleep(1)    # seconds
@@ -133,7 +133,7 @@ class Dadivity():
 
         if DISPLAY_ACTIVITY in self.test_flags:
 
-            print "dispatch, message:", dadivity_event_name[message["event"]]
+            print("dispatch, message:", dadivity_event_name[message["event"]])
 
         if message["event"] == HOUR_TICK:
 
@@ -141,7 +141,7 @@ class Dadivity():
             if message["current_hour"] in dadivity_config.send_email_hour:
                 update_msg = self.motion_mailer.send(self.counters.format_ascii_bar_chart())
                 if DISPLAY_ACTIVITY in self.test_flags:
-                    print "update message:", dadivity_event_name[message["event"]]
+                    print("update message:", dadivity_event_name[message["event"]])
                 logging.debug("update_msg: " + repr(update_msg))
                 self.event_monitor.update(update_msg, self.counters)
             self.counters.new_hour(message["current_hour"])
@@ -151,7 +151,7 @@ class Dadivity():
 
             update_msg = self.motion_mailer.retry()
             if DISPLAY_ACTIVITY in self.test_flags:
-                print "update message:", dadivity_event_name[update_msg["event"]]
+                print("update message:", dadivity_event_name[update_msg["event"]])
             logging.debug("update_msg: " + repr(update_msg))
             self.event_monitor.update(update_msg, self.counters)
 
@@ -164,7 +164,7 @@ class Dadivity():
 
             update_msg = self.button_email.send()
             if DISPLAY_ACTIVITY in self.test_flags:
-                print "update message:", dadivity_event_name[update_msg["event"]]
+                print("update message:", dadivity_event_name[update_msg["event"]])
             self.event_monitor.update(update_msg, self.counters)
 
 ########################################################################

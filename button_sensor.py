@@ -22,7 +22,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import Queue
+import queue
 from datetime import datetime as dt
 import datetime
 import logging
@@ -67,7 +67,7 @@ if __name__ == "__main__":
 #    from pudb import set_trace; set_trace()
     logging.basicConfig(level=logging.DEBUG)
 
-    event_queue = Queue.Queue()
+    event_queue = queue.Queue()
     bs = Button_Sensor(event_queue, test_flags=[USE_MOCK_MAILMAN])
 
     try:
@@ -75,7 +75,7 @@ if __name__ == "__main__":
         while 1:
             event = event_queue.get(BLOCK, ONE_YEAR_TIMEOUT)  # needs some timeout to respond to keyboard interrupt
             update = event.callback()
-            print update
+            print(update)
 
     except KeyboardInterrupt: pass
 

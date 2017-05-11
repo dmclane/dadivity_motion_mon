@@ -21,7 +21,7 @@ limitations under the License.
 """
 
 #import time
-import Queue
+import queue
 #from datetime import datetime as dt
 import logging
 from dadivity_constants import *
@@ -59,7 +59,7 @@ class Motion_Sensor(object):
 if __name__ == "__main__":
 
     logging.basicConfig(level=logging.DEBUG)
-    event_queue = Queue.Queue()
+    event_queue = queue.Queue()
 
     try:
         ms = Motion_Sensor(event_queue)
@@ -67,7 +67,7 @@ if __name__ == "__main__":
         while 1:
             event = event_queue.get(BLOCK, ONE_YEAR_TIMEOUT)  # needs some timeout to respond to keyboard interrupt
             message = event.callback()
-            print message
+            print(message)
 
     finally:
         GPIO.cleanup()

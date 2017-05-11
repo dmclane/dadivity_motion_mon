@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 """ Send email, retrying if there's an error.
 
 """
@@ -20,17 +20,13 @@ limitations under the License.
 """
 
 import time, sys
-#from datetime import datetime as dt
-#import datetime
+import queue
+import logging
 import dadivity_config
 from dadivity_constants import *
 import send_email
 from email_retry_manager import Email_Retry_Manager
-
-# imports for testing part
-import logging
 import per_hour_counters
-import Queue
 
 class Email_Motion_Report(object):
     """ Send email, with a summary of activity detected by the
@@ -56,12 +52,6 @@ class Email_Motion_Report(object):
 
         return {"event": MOTION_REPORT_SENT, "email_error": email_error}
 
-#    def compose_email_msg(self, ascii_bar_chart):
-#        msg = []
-#        msg.append('Sent: ' + time.asctime() + '\n')
-#        msg.append(ascii_bar_chart)
-#        return "".join(msg)
-
     def retry(self):
         return self._email_retry_manager.motion_email_retry()
 
@@ -80,10 +70,10 @@ class Email_Motion_Report(object):
 def test(flags):
     counters = per_hour_counters.Per_Hour_Counters()
     per_hour_counters.make_some_interesting_data(counters)
-    emr = Email_Motion_Report(Queue.Queue(),
+    emr = Email_Motion_Report(queue.Queue(),
                               test_flags=flags)
     send_result = emr.send(counters.format_ascii_bar_chart())
-    print "send_result:", send_result
+    print("send_result:", send_result)
 
 if __name__ == '__main__':
 
