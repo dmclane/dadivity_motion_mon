@@ -43,6 +43,7 @@ except ImportError:
 
 LOW_FREQUENCY = 800                     # Hz.
 HIGH_FREQUENCY = 1220                   # Hz.
+BEEP_LENGTH = .25                       # seconds
 ONE_YEAR_TIMEOUT = 365 * 24 * 60 * 60   # seconds
 BLOCK = True
 
@@ -90,7 +91,7 @@ class Button_Email(object):
         period = 1.0 / freq
         half_period = period / 2.0
 
-        for i in range(freq):
+        for i in range(int(BEEP_LENGTH * freq)):
             # toggle two IO pins for more volume
             GPIO.output(BEEPER_PIN_1, True)
             GPIO.output(BEEPER_PIN_2, False)
@@ -131,6 +132,10 @@ if __name__ == "__main__":
 #    from pudb import set_trace; set_trace()
 
     try:
+
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(BEEPER_PIN_1, GPIO.OUT)
+        GPIO.setup(BEEPER_PIN_2, GPIO.OUT)
 
         if 'beep1' in sys.argv:
 
