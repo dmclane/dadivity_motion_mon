@@ -70,7 +70,10 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             status = self.server.event_monitor.get_history_str()
             # atomic operation, strings are immutable
             response = "".join([response_preamble, status, response_postamble])
-            self.request.sendall(response.encode("utf-8"))
+            try:
+                self.request.sendall(response.encode("utf-8"))
+            except: pass   # if there's an error, ignore it.  Assume caller will try again.
+                           # I've seen ConnectionResetError once for sure.
 
 class Status_Web_Server(threading.Thread):
     """ Web server thread.
