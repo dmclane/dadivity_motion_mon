@@ -68,7 +68,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             logging.debug(data)
         if recieved_length > 0:   # on shutdown you come here with a length of 0.
             status = self.server.event_monitor.get_history_str()
-            # atomic operation, strings are immutable
+            # atomic operation, since strings are immutable
             response = "".join([response_preamble, status, response_postamble])
             try:
                 self.request.sendall(response.encode("utf-8"))
@@ -79,7 +79,7 @@ class Status_Web_Server(threading.Thread):
     """ Web server thread.
     
     A simple, single threaded, webserver, mostly taken from the documentation
-    for SocketServer
+    for SocketServer.
     """
 
     def __init__(self, event_monitor, test_flags=[]):
@@ -98,11 +98,17 @@ class Status_Web_Server(threading.Thread):
                 logging.debug("Couldn't open SocketServer, retrying ...")
                 time.sleep(30)   # seconds
 
-        # The handler has a reference to the server.  So, to pass something
-        # to the handler, we dynamically add it to the server:
-        self.server.event_monitor = event_monitor
-        self.server.test_flags = self._test_flags
-        self.start()
+        if self.server:       # if the server started OK.
+
+            # The handler has a reference to the server.  So, to pass something
+            # to the handler, we dynamically add it to the server:
+            self.server.event_monitor = event_monitor
+            self.server.test_flags = self._test_flags
+
+            self.start()
+
+        else:
+            logging.debug("Couldn't open SocketServer.")
 
     def run(self):
         self.server.serve_forever(poll_interval=0.5)
@@ -125,7 +131,7 @@ class dummy_event_monitor(object):
     def get_history_str(self):
         return time.asctime()
 
-def main():
+def test_main():
     sws = Status_Web_Server(dummy_event_monitor(),
                             test_flags=[PRINT_WEB_SERVER_ACTIVITY])
 
@@ -155,5 +161,5 @@ if __name__ == "__main__":
         sws.shutdown()
 
     else:
-        main()
+        test_main()
 

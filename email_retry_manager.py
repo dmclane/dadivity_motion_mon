@@ -29,6 +29,7 @@ limitations under the License.
 import queue
 import threading
 from dadivity_constants import *
+import dadivity_config
 import send_email
 import time
 import logging
@@ -44,8 +45,9 @@ class Email_Retry_Manager(object):
     continue to fail.
     """
 
-    def __init__(self, event_queue, test_flags=[]):
+    def __init__(self, event_queue, destination_list, test_flags=[]):
         self._q = event_queue
+        self._destination_list = destination_list
         self._retry_counter = RESET_FLAG
         self._retry_timer = None
         self._test_flags = test_flags
@@ -103,6 +105,7 @@ class Email_Retry_Manager(object):
         if self._retry_counter != RESET_FLAG:
             message = "retry # " + str(self._retry_counter) + "\n" + self._msg
             email_error = send_email.dadivity_send(self._subject,
+                                                   self._destination_list,
                                                    message,
                                                    self._test_flags)
             if email_error != None:
@@ -126,7 +129,9 @@ if __name__ == "__main__":
 
     per_hour_counters = [0] * 24
     event_queue = queue.Queue()
-    erm = Email_Retry_Manager(event_queue, test_flags=[FAST_RETRY, MOCK_ERROR, JUST_PRINT_MESSAGE])
+    erm = Email_Retry_Manager(event_queue,
+                              dadivity_config.email_recipients,
+                              test_flags=[FAST_RETRY, MOCK_ERROR, JUST_PRINT_MESSAGE])
     erm.start_retrying("test subject", "test message")
 
     try:

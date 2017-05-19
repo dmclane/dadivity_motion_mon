@@ -69,7 +69,7 @@ def send_to_list(subject, msg, **kwargs):
         mailman.list_send(subject, msg, **kwargs)
         mailman.quit()
 
-def dadivity_send(subject, msg, test_flags=[]):
+def dadivity_send(subject, destination_list, msg, test_flags=[]):
 
     if MOCK_ERROR in test_flags:
         email_error = "mock error"
@@ -90,7 +90,7 @@ def dadivity_send(subject, msg, test_flags=[]):
         try:
             mailman = mailman_factory(**kwargs)
             if mailman != None:
-                mailman.list_send(subject, msg, list_dest=dadivity_config.email_recipients)
+                mailman.list_send(subject, msg, list_dest=destination_list)
         except smtplib.SMTPException as e:
             # we don't want the whole program to crash, if sending email fails
             email_error = str(e)
@@ -222,6 +222,8 @@ if __name__ == '__main__':
     # from pudb import set_trace; set_trace()  # start debugger, normally commented out
     logging.basicConfig(level=logging.DEBUG)
 
+    destination_list = dadivity_config.email_recipients
+
     if 'null' in sys.argv:
         send_a_message('test_sub', test_dest, 'this is a test', use_mailman='null')
 
@@ -235,10 +237,13 @@ if __name__ == '__main__':
         send_a_message(test_subject, test_dest, test_msg, use_mailman='gmail', smtp_debug_level=2)
 
     if 'dad' in sys.argv:
-        email_error = dadivity_send(test_subject, test_msg)
+        email_error = dadivity_send(test_subject, destination_list, test_msg)
         print("email_error =", email_error)
 
     if 'dad1' in sys.argv:
-        email_error = dadivity_send(test_subject, test_msg, test_flags=[USE_MOCK_MAILMAN, MOCK_ERROR])
+        email_error = dadivity_send(test_subject,
+                                    destination_list,
+                                    test_msg,
+                                    test_flags=[USE_MOCK_MAILMAN, MOCK_ERROR])
         print("email_error =", email_error)
 

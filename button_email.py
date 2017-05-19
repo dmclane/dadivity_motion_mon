@@ -49,10 +49,12 @@ BLOCK = True
 
 class Button_Email(object):
 
-    def __init__(self, queue, test_flags=[]):
+    def __init__(self, queue, destination_list, test_flags=[]):
 
         self._test_flags = test_flags
-        self._email_retry_manager = Email_Retry_Manager(queue, test_flags=test_flags)
+        self._email_retry_manager = Email_Retry_Manager(queue,
+                                                        destination_list,
+                                                        test_flags=test_flags)
         self._last_time = dt.now() - datetime.timedelta(hours=2)
 
     def stop_any_pending_retries(self):
@@ -73,6 +75,7 @@ class Button_Email(object):
 
             email_error = send_email.dadivity_send(
                                       dadivity_config.button_subject,
+                                      dadivity_config.email_recipients,
                                       dadivity_config.button_message,
                                       self._test_flags)
             self._last_time = dt.now()

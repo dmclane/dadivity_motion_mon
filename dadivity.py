@@ -42,7 +42,7 @@ import datetime
 import time
 from per_hour_counters import Per_Hour_Counters
 from hourly_event_generator import Hourly_Event_Generator_Thread
-from email_motion_report import Email_Motion_Report
+from mailer_with_retries import Mailer_With_Retries
 try:
     import RPi.GPIO as GPIO
 except ImportError:
@@ -68,10 +68,14 @@ class Dadivity():
         self.hourly_tick   = Hourly_Event_Generator_Thread(self.event_queue,
                                                            self.stop_hourly_tick_event,
                                                            test_flags=self.test_flags)
-        self.motion_mailer = Email_Motion_Report(self.event_queue, test_flags=self.test_flags)
+        self.motion_mailer = Mailer_With_Retries(self.event_queue,
+                                                 dadivity_config.email_recipients,
+                                                 test_flags=self.test_flags)
         self.motion_sense  = Motion_Sensor(self.event_queue)
         self.button_sense  = Button_Sensor(self.event_queue, test_flags=self.test_flags)
-        self.button_email  = Button_Email(self.event_queue, test_flags=self.test_flags)
+        self.button_email  = Button_Email(self.event_queue,
+                                          dadivity_config.email_recipients,
+                                          test_flags=self.test_flags)
         self.event_monitor = Event_Monitor(self.counters, test_flags=self.test_flags)
         self.web_stats     = Status_Web_Server(self.event_monitor)
 
@@ -139,7 +143,8 @@ class Dadivity():
 
             # first, is it time to send a motion summary email?
             if message["current_hour"] in dadivity_config.send_email_hour:
-                update_msg = self.motion_mailer.send(self.counters.format_ascii_bar_chart())
+                update_msg = self.motion_mailer.send(dadivity_config.daily_email_subject,
+                                                     self.counters.format_ascii_bar_chart())
                 if DISPLAY_ACTIVITY in self.test_flags:
                     print("update message:", dadivity_event_name[message["event"]])
                 logging.debug("update_msg: " + repr(update_msg))

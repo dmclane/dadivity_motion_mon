@@ -28,22 +28,25 @@ import send_email
 from email_retry_manager import Email_Retry_Manager
 import per_hour_counters
 
-class Email_Motion_Report(object):
-    """ Send email, with a summary of activity detected by the
-        motion sensor.
+class Mailer_With_Retries(object):
+    """ Send email.
     """
-    def __init__(self, queue, test_flags=[]):
+    def __init__(self, queue, destination_list, test_flags=[]):
         self._test_flags = test_flags
+        self._destination_list = destination_list
         self._email_retry_manager = Email_Retry_Manager(queue,
+                                                        destination_list,
                                                         test_flags=test_flags)
 
-    def send(self, ascii_bar_chart):
+#    def send(self, main_body):
+    def send(self, email_subject, main_body):
         msg = []
         msg.append('Sent: ' + time.asctime() + '\n')
-        msg.append(ascii_bar_chart)
+        msg.append(main_body)
         email_message = "".join(msg)
-        email_subject = dadivity_config.daily_email_subject
+#        email_subject = dadivity_config.daily_email_subject
         email_error = send_email.dadivity_send(email_subject,
+                                               self._destination_list,
                                                email_message,
                                                self._test_flags)
 
