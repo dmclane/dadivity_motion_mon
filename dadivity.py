@@ -61,6 +61,15 @@ class Dadivity():
 
     def __init__(self, test_flags=[]):
         self.test_flags    = test_flags
+
+        # check to see if time is reasonable.  NTP may not have set the time
+        # yet.  Don't wait forever though.  Do this before initializing
+        # instance of Per_Hour_Counters.
+        for i in range(30):
+            if datetime.datetime.now() > datetime.datetime(2015, 1, 1):
+                break
+            time.sleep(1)    # seconds
+
         self.event_queue   = queue.Queue()
         self.counters      = Per_Hour_Counters()
 
@@ -78,13 +87,6 @@ class Dadivity():
                                           test_flags=self.test_flags)
         self.event_monitor = Event_Monitor(self.counters, test_flags=self.test_flags)
         self.web_stats     = Status_Web_Server(self.event_monitor)
-
-        # check to see if time is reasonable.  NTP may not have set the time
-        # yet.  Don't wait forever though.
-        for i in range(30):
-            if datetime.datetime.now() > datetime.datetime(2015, 1, 1):
-                break
-            time.sleep(1)    # seconds
 
 ########################################################################
 #
