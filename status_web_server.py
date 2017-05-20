@@ -1,5 +1,5 @@
 #! /usr/bin/python
-""" Web server to show recent activity.
+""" A rather simple web server to show recent activity.
 
 """
 """
@@ -83,6 +83,12 @@ class Status_Web_Server(threading.Thread):
     """
 
     def __init__(self, event_monitor, test_flags=[]):
+        """ Creates a socketserver.TCPServer(...) and starts serving.
+
+        Parameters:
+            event_monitor -- provides web page content, recent activity
+            test_flags -- could be PRINT_WEB_SERVER_ACTIVITY
+        """
 
         threading.Thread.__init__(self)
         self._test_flags = test_flags
