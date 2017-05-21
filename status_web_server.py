@@ -93,10 +93,11 @@ class Status_Web_Server(threading.Thread):
         threading.Thread.__init__(self)
         self._test_flags = test_flags
 
+        self.server = None
         # if program is killed, then immediately restarted, the port may not
         # be available yet.  Seems to happen on pi.  Doesn't happen on my
         # windows laptop.
-        for i in range(3):
+        for i in range(5):
             try:
                 self.server = socketserver.TCPServer((HOST, PORT), MyTCPHandler)
                 break
@@ -104,7 +105,7 @@ class Status_Web_Server(threading.Thread):
                 logging.debug("Couldn't open SocketServer, retrying ...")
                 time.sleep(30)   # seconds
 
-        if self.server:       # if the server started OK.
+        if self.server != None:       # if the server started OK.
 
             # The handler has a reference to the server.  So, to pass something
             # to the handler, we dynamically add it to the server:
