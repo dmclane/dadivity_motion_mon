@@ -41,7 +41,7 @@ class Mailer_With_Retries(object):
 #    def send(self, main_body):
     def send(self, email_subject, main_body):
         msg = []
-        msg.append('Sent: ' + time.asctime() + '\n')
+        msg.append('Sent: ' + time.strftime("%c %Z") + '\n')
         msg.append(main_body)
         email_message = "".join(msg)
 #        email_subject = dadivity_config.daily_email_subject

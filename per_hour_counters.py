@@ -13,7 +13,7 @@ class Per_Hour_Counters:
     def __init__(self):
         self.counters = collections.deque(maxlen=24)
         self.counters.appendleft([dt.now().hour, 0])
-        self.starting_time = time.asctime()
+        self.starting_time = time.strftime("%c %Z")
 
     def new_hour(self, hour):
         self.counters.appendleft([hour, 0])    # count starts at 0

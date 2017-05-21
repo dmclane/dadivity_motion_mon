@@ -67,10 +67,10 @@ class Event_Monitor(object):
         elif message["event"] == MOTION_REPORT_SENT:
             if message["email_error"] == None:
                 self._daily_email_history.appendleft('successful send, '
-                                                     + time.asctime())
+                                                     + time.strftime("%c %Z"))
             else:
                 self._daily_email_history.appendleft('send not successful, '
-                                                     + time.asctime() + '\n'
+                                                     + time.strftime("%c %Z") + '\n'
                                                      + message["email_error"])
             self._create_history_str(counters)
 
@@ -78,21 +78,21 @@ class Event_Monitor(object):
             if message["within_an_hour"]:
                 self._button_email_history.appendleft(
                     'button pressed within an hour of last time, no email sent, '
-                    + time.asctime())
+                    + time.strftime("%c %Z"))
             else:
                 if message["email_error"] == None:
                     self._button_email_history.appendleft('email sent, '
-                                                          + time.asctime())
+                                                          + time.strftime("%c %Z"))
                 else:
                     self._button_email_history.appendleft('email attempted, '
-                                                          + time.asctime()
+                                                          + time.strftime("%c %Z")
                                                           + '\n'
                                                           + message["email_error"])
             self._create_history_str(counters)
 
         elif message["event"] == EMAIL_RETRY:
             retry_msg = ['retry number: ' + str(message['retry_counter'])
-                         + ', ' + time.asctime() + '\n']
+                         + ', ' + time.strftime("%c %Z") + '\n']
             if message['email_error'] != None:
                 retry_msg.append('unsuccessful; ' + message['email_error'])
             else:
