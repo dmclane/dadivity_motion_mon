@@ -38,16 +38,10 @@ class Mailer_With_Retries(object):
                                                         destination_list,
                                                         test_flags=test_flags)
 
-#    def send(self, main_body):
     def send(self, email_subject, main_body):
-        msg = []
-        msg.append('Sent: ' + time.strftime("%c %Z") + '\n')
-        msg.append(main_body)
-        email_message = "".join(msg)
-#        email_subject = dadivity_config.daily_email_subject
         email_error = send_email.dadivity_send(email_subject,
                                                self._destination_list,
-                                               email_message,
+                                               main_body,
                                                self._test_flags)
 
         if email_error != None:

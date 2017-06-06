@@ -25,6 +25,7 @@ limitations under the License.
 import smtplib
 import getpass
 import sys
+import time
 import dadivity_config
 from dadivity_constants import *
 import logging
@@ -70,6 +71,8 @@ def send_to_list(subject, msg, **kwargs):
         mailman.quit()
 
 def dadivity_send(subject, destination_list, msg, test_flags=[]):
+
+    subject = subject + ' ' + time.strftime("%b %d, %I:%M %p %Z")
 
     if MOCK_ERROR in test_flags:
         email_error = "mock error"
